@@ -1,13 +1,31 @@
 #!/bin/env dls-python
-from pkg_resources import require
-require('h5py')
-require('numpy')
-
+try:
+    from pkg_resources import require
+    require('h5py')
+    require('numpy')
+except:
+    # Some may not use setuptools/require for package management
+    # and that is OK too...
+    pass
+    
+import os
 import unittest
 import ConfigParser
-import hdf_xml, adclientxmlhdf
 import h5py 
-import os
+
+import hdf_xml
+
+# The adclientxmlhdf module imports the DLS cothread.catools module
+# which is an EPICS Channel Access client.
+# If this package is not available on the system, then we just don't
+# run the IOC client code which generates the HDF5 output files based on
+# the users XML definition. The user will have to manually supply the HDF5 file
+# instead (defined in the .ini file).
+try:
+    import adclientxmlhdf
+    RUN_CA_CLIENT=True
+except ImportError:
+    RUN_CA_CLIENT=False
 
 ini_filename = "test_hdf_xml.ini"
 
@@ -32,8 +50,10 @@ class TestHdfXml(unittest.TestCase):
         # First check that an XML definition file already exist
         self.assertTrue(os.path.exists(self.xml_file), \
                         "Cannot complete tests without XML file: \'%s\'"%(self.xml_file))
-        # Use the XML file (and some IOC out there) to create a HDF5 file
-        run_xml_hdf_writer(self.xml_file, self.hdf_file)
+        if RUN_CA_CLIENT:
+            # Use the XML file (and some IOC out there) to create a HDF5 file
+            adclientxmlhdf.run_xml_hdf_writer(self.xml_file, self.hdf_file)
+        
         # Now check that the HDF5 file really exists
         self.assertTrue(os.path.exists(self.hdf_file),\
                         "Cannot complete tests without HDF5 file: \'%s\'"%(self.hdf_file))
@@ -122,14 +142,6 @@ class TestHdfXml(unittest.TestCase):
                                          msg = "Dataset \'%s:%s\' constant value: %s == %s" \
                                          %(hdf_dset_name, attribute.name, attribute.value, hdf_dset.attrs[attribute.name]) )
 
-def run_xml_hdf_writer(xml_file, hdf_file, exposure=0.1, nimages=4):
-    sim = adclientxmlhdf.SimDet('TESTSIMDETECTOR:CAM')
-    hdf = adclientxmlhdf.HdfPlugin('TESTSIMDETECTOR:HDF')
-    with adclientxmlhdf.AreaDetector([sim], [hdf]) as ad:
-        hdf.set_data_source(sim)
-        hdf.configure_file(hdf_file, xml_file)
-        hdf.capture(nimages)
-        sim.acquire(exposure, nimages)
 
             
 if __name__=="__main__":

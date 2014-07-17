@@ -1,9 +1,13 @@
 #!/bin/env dls-python
-from pkg_resources import require
-require('cothread')
+try:
+    from pkg_resources import require
+    require('cothread')
+except:
+    # Some may not use setuptools/require for package management
+    # and that is OK too...
+    pass
 
 import os
-
 from cothread.catools import *
 
 class StrException(Exception):
@@ -142,17 +146,20 @@ class AreaDetector:
     def __exit__(self, type, value, traceback):
         for plugin in self.plugins + self.drivers:
             plugin.stop_monitor()
-        
-def main():
+
+def run_xml_hdf_writer(xml_file, hdf_file, exposure=0.1, nimages=4):
+    '''Convenience function to capture a number of simulated images into an HDF5 file'''
     sim = SimDet('TESTSIMDETECTOR:CAM')
     hdf = HdfPlugin('TESTSIMDETECTOR:HDF')
     with AreaDetector([sim], [hdf]) as ad:
         hdf.set_data_source(sim)
-        hdf.configure_file("blah.h5", 'ADCore/iocs/hdf5LayoutXML/hdf5LayoutXMLApp/data/layout.xml')
-        hdf.capture(4)
-        sim.acquire(0.1, 4)
+        hdf.configure_file(hdf_file, xml_file)
+        hdf.capture(nimages)
+        sim.acquire(exposure, nimages)
         
-    
+def main():
+    run_xml_hdf_writer('ADCore/iocs/hdf5LayoutXML/hdf5LayoutXMLApp/data/layout.xml',\
+                       "blah.h5", 0.1, 4)
     
 if __name__=="__main__":
     main()
