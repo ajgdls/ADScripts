@@ -8,7 +8,7 @@ except:
     # and that is OK too...
     pass
     
-import os
+import os, argparse
 import unittest
 import ConfigParser
 import h5py 
@@ -27,15 +27,13 @@ try:
 except ImportError:
     RUN_CA_CLIENT=False
 
-ini_filename = "test_hdf_xml.ini"
-
 def make_classes(cls, ini_file):
     '''Programatically generate (yield) a number of classes.
     The classes are based on the cls input and the section names of the
     ini_file input. The content of the ini file sections is stored as constants
     in the generated classes.'''
     cfg = ConfigParser.SafeConfigParser()
-    cfg.read(ini_filename)
+    cfg.read(ini_file)
     sections = cfg.sections()
     for section in sections:
         name = '%s: %s' %(cls.__name__, section)
@@ -143,10 +141,30 @@ class TestHdfXml(unittest.TestCase):
                                          %(hdf_dset_name, attribute.name, attribute.value, hdf_dset.attrs[attribute.name]) )
 
 
+def main():
+    class AbsPathAction(argparse.Action):
+        def __call__(self, parser, namespace, value, option_string=None):
+            value = os.path.abspath(value)
+            if not os.path.exists(value):
+                raise IOError('No such file: \'%s\''%value)
+            setattr(namespace, self.dest, value)
+    parser = argparse.ArgumentParser(description="Testing of the HDF5 file writer XML layout feature"
+                                     "This test compare a HDF5 file with an XML definition file.")
+    parser.add_argument('inifile', metavar='INIFILE', type=str, nargs='?', action=AbsPathAction, default='test_hdf_xml.ini',
+                        help='INI file which can list a number of combinations of HDF5 and XML files to be checked')
+    parser.add_argument('--verbosity', '-v', metavar='LEVEL', dest='verbosity', action='store', type=int, default=1,
+                        help='Verbosity of the unittest output')
+    parser.add_argument('--failfast', '-f', dest='failfast', action='store_true', default=False,
+                        help='Abort on first encounted test failure or error')
+    
+    args = parser.parse_args()
+    args = vars(args)
+
+    suite = unittest.TestSuite()
+    for cls in make_classes(TestHdfXml, args['inifile']):
+        suite.addTest(unittest.TestLoader().loadTestsFromTestCase(cls))
+    unittest.TextTestRunner(verbosity=args['verbosity'], failfast=args['failfast']).run(suite)
+    
             
 if __name__=="__main__":
-    suite = unittest.TestSuite()
-    for cls in make_classes(TestHdfXml, ini_filename):
-        suite.addTest(unittest.TestLoader().loadTestsFromTestCase(cls))
-    unittest.TextTestRunner(verbosity=10, failfast=False).run(suite)
-    
+    main()

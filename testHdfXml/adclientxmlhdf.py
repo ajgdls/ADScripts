@@ -8,6 +8,7 @@ except:
     pass
 
 import os
+import argparse
 from cothread.catools import *
 
 class StrException(Exception):
@@ -97,7 +98,7 @@ class HdfPlugin:
         self.capturing = capture is 1
         
     def set_data_source(self, source_driver):
-        print "Setting %s plugin input: %s" %( self.portname, source_driver.portname)
+        #print "Setting %s plugin input: %s" %( self.portname, source_driver.portname)
         caput( self.pv['port'], str(source_driver.portname), wait=True)
         
     def configure_file(self, outputfile, xmldef=None):
@@ -147,19 +148,42 @@ class AreaDetector:
         for plugin in self.plugins + self.drivers:
             plugin.stop_monitor()
 
-def run_xml_hdf_writer(xml_file, hdf_file, exposure=0.1, nimages=4):
+def run_xml_hdf_writer(xml_file, hdf_file, exposure=0.1, nimages=4,
+                       simpv = 'TESTSIMDETECTOR:CAM',
+                       hdfpv = 'TESTSIMDETECTOR:HDF'):
     '''Convenience function to capture a number of simulated images into an HDF5 file'''
-    sim = SimDet('TESTSIMDETECTOR:CAM')
-    hdf = HdfPlugin('TESTSIMDETECTOR:HDF')
+    sim = SimDet(simpv)
+    hdf = HdfPlugin(hdfpv)
     with AreaDetector([sim], [hdf]) as ad:
         hdf.set_data_source(sim)
         hdf.configure_file(hdf_file, xml_file)
         hdf.capture(nimages)
         sim.acquire(exposure, nimages)
-        
+
+            
 def main():
-    run_xml_hdf_writer('ADCore/iocs/hdf5LayoutXML/hdf5LayoutXMLApp/data/layout.xml',\
-                       "blah.h5", 0.1, 4)
+    class AbsPathAction(argparse.Action):
+        def __call__(self, parser, namespace, value, option_string=None):
+            value = os.path.abspath(value)
+            setattr(namespace, self.dest, value)
+    parser = argparse.ArgumentParser(description="EPICS areaDetector client to control the acquisition of (simulated) images and the associated HDF5 file writer")
+    parser.add_argument('xmlfilename', metavar='XMLFILE', type=str, action=AbsPathAction, 
+                        help='XML file describing the layout of the output HDF5 file')
+    parser.add_argument('hdf5filename', metavar='HDF5FILE', type=str, action=AbsPathAction,
+                        help='Output HDF5 file')
+    parser.add_argument('--exposure', '-e', metavar='T', dest='exposure', action='store', type=float, default=0.1,
+                        help='Set the camera exposure time in seconds')
+    parser.add_argument('--num', '-n', metavar='N', dest='numimages', action='store', type=int, default=1,
+                        help='Number of images to record')
+    parser.add_argument('--simpv', dest='simpv', action='store', default = "TESTSIMDETECTOR:CAM", 
+                        help='Base PV of the simulated camera driver')
+    parser.add_argument('--hdfpv', dest='hdfpv', action='store', default = "TESTSIMDETECTOR:HDF",
+                        help='Base PV of the HDF5 file writer plugin')
+    
+    args = parser.parse_args()
+    args = vars(args)
+    run_xml_hdf_writer(args['xmlfilename'], args['hdf5filename'], args['exposure'], args['numimages'],
+                       simpv=args['simpv'], hdfpv=args['hdfpv'])
     
 if __name__=="__main__":
     main()
