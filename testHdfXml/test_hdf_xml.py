@@ -1,0 +1,140 @@
+#!/bin/env dls-python
+from pkg_resources import require
+require('h5py')
+require('numpy')
+
+import unittest
+import ConfigParser
+import hdf_xml, adclientxmlhdf
+import h5py 
+import os
+
+ini_filename = "test_hdf_xml.ini"
+
+def make_classes(cls, ini_file):
+    '''Programatically generate (yield) a number of classes.
+    The classes are based on the cls input and the section names of the
+    ini_file input. The content of the ini file sections is stored as constants
+    in the generated classes.'''
+    cfg = ConfigParser.SafeConfigParser()
+    cfg.read(ini_filename)
+    sections = cfg.sections()
+    for section in sections:
+        name = '%s: %s' %(cls.__name__, section)
+        yield type(name, (cls,), {'hdf_file': os.path.abspath(cfg.get(section, "hdf_file")),
+                                  'xml_file': os.path.abspath(cfg.get(section, "xml_file"))})       
+
+class TestHdfXml(unittest.TestCase):
+    hdf_file = None
+    xml_file = None
+    
+    def setUp(self):
+        # First check that an XML definition file already exist
+        self.assertTrue(os.path.exists(self.xml_file), \
+                        "Cannot complete tests without XML file: \'%s\'"%(self.xml_file))
+        # Use the XML file (and some IOC out there) to create a HDF5 file
+        run_xml_hdf_writer(self.xml_file, self.hdf_file)
+        # Now check that the HDF5 file really exists
+        self.assertTrue(os.path.exists(self.hdf_file),\
+                        "Cannot complete tests without HDF5 file: \'%s\'"%(self.hdf_file))
+        
+        self.xml_def = hdf_xml.HdfXmlDefinition()
+        self.xml_def.populate(self.xml_file)
+        self.hdf = h5py.File(self.hdf_file)
+        
+        # Build some convenient lists of gropus and datasets
+        self.hdf_groups = []
+        self.hdf_datasets = []
+        def build_hdf_lists(name):
+            name = "/"+name
+            #print "build_hdf_lists: ", name
+            if type(self.hdf[name]) == h5py._hl.dataset.Dataset:
+                self.hdf_datasets.append(name)
+            elif type(self.hdf[name]) == h5py._hl.group.Group:
+                self.hdf_groups.append(name)
+        self.hdf.visit(build_hdf_lists)
+    
+    def tearDown(self):
+        self.hdf.close()
+            
+    def test_all_defined_groups(self):
+        ''' Check if all XML defined groups are present in HDF5'''
+        for group in self.xml_def.groups:
+            self.assertTrue(group in self.hdf, "Group \'%s\' should exist in the HDF file"%(group))
+                    
+    def test_group_attributes(self):
+        '''Check if all groups in HDF5 have the pre-defined attributes present'''
+        for hdf_group_name in self.hdf_groups:
+            try:
+                attributes = self.xml_def.groups[hdf_group_name][1]
+                hdf_group = self.hdf[hdf_group_name]
+            except:
+                # No group of that name defined. Probably not reason to fail, so we just continue
+                continue
+            for attribute in attributes.itervalues():
+                #print "Group: %s  attr: %s" % (hdf_dset_name, attribute.name)
+                self.assertTrue(attribute.name in hdf_group.attrs, "Group \'%s\' should contain attribute \'%s\'"%(hdf_group_name, attribute.name))
+                # If the attribute is a constant we verify it's value too
+                if attribute.is_constant():
+                    # Numpy arrays (h5py uses numpy) are evaluated slightly differently
+                    if type( attribute.value ) == list:
+                        array_equal = (attribute.value == hdf_group.attrs[attribute.name])
+                        self.assertTrue( array_equal.all(), \
+                                         msg = "Group \'%s:%s\' constant value: %s == %s" \
+                                         %(hdf_group_name, attribute.name, attribute.value, hdf_group.attrs[attribute.name]) )
+                    else:
+                        self.assertEqual(attribute.value, hdf_group.attrs[attribute.name], \
+                                         msg = "Group \'%s:%s\' constant value: %s == %s" \
+                                         %(hdf_group_name, attribute.name, attribute.value, hdf_group.attrs[attribute.name]) )
+        
+    def test_all_detector_dset(self):
+        ''' Check if all defined detector datasets exist in HDF5'''
+        for xml_dset in self.xml_def.datasets:
+            if self.xml_def.datasets[xml_dset][0] == hdf_xml.DETECTOR:
+                self.assertTrue(xml_dset in self.hdf, "Detector dataset \'%s\' should exist in HDF5"%xml_dset)
+        
+    
+    def test_dataset_attributes(self):
+        ''' Check if all datasets in HDF5 have the pre-defined attributes present'''
+        for hdf_dset_name in self.hdf_datasets:
+            try:
+                attributes = self.xml_def.datasets[hdf_dset_name][2]
+            except:
+                # This dataset was not defined in the XML - it could have been added
+                # by anyone, which is in principle fine, so we just continue the loop here.
+                continue
+            hdf_dset = self.hdf[hdf_dset_name]
+            for attribute in attributes.itervalues():
+                #print "Group: %s  attr: %s" % (hdf_dset_name, attribute.name)
+                self.assertTrue(attribute.name in hdf_dset.attrs, \
+                                "Dataset \'%s\' should contain attribute \'%s\'"\
+                                %(hdf_dset_name, attribute.name))
+                # If the attribute is a constant we verify it's value too
+                if attribute.is_constant():
+                    # Numpy arrays (h5py uses numpy) are evaluated slightly differently
+                    if type( attribute.value ) == list:
+                        array_equal = (attribute.value == hdf_dset.attrs[attribute.name])
+                        self.assertTrue( array_equal.all(), \
+                                         msg = "Dataset \'%s\:%s' constant value: %s == %s" \
+                                         %(hdf_dset_name, attribute.name, attribute.value, hdf_dset.attrs[attribute.name]) )
+                    else:
+                        self.assertEqual(attribute.value, hdf_dset.attrs[attribute.name], \
+                                         msg = "Dataset \'%s:%s\' constant value: %s == %s" \
+                                         %(hdf_dset_name, attribute.name, attribute.value, hdf_dset.attrs[attribute.name]) )
+
+def run_xml_hdf_writer(xml_file, hdf_file, exposure=0.1, nimages=4):
+    sim = adclientxmlhdf.SimDet('TESTSIMDETECTOR:CAM')
+    hdf = adclientxmlhdf.HdfPlugin('TESTSIMDETECTOR:HDF')
+    with adclientxmlhdf.AreaDetector([sim], [hdf]) as ad:
+        hdf.set_data_source(sim)
+        hdf.configure_file(hdf_file, xml_file)
+        hdf.capture(nimages)
+        sim.acquire(exposure, nimages)
+
+            
+if __name__=="__main__":
+    suite = unittest.TestSuite()
+    for cls in make_classes(TestHdfXml, ini_filename):
+        suite.addTest(unittest.TestLoader().loadTestsFromTestCase(cls))
+    unittest.TextTestRunner(verbosity=10, failfast=False).run(suite)
+    

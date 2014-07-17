@@ -1,0 +1,159 @@
+#!/bin/env dls-python
+from pkg_resources import require
+require('cothread')
+
+import os
+
+from cothread.catools import *
+
+class StrException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+    def _str_(self):
+        return repr(self.msg)
+
+class SimDet:
+    def __init__(self, pv):
+        self.basepv = pv
+        pv += ":"
+        self.pv = dict({'period':      pv + 'AcquirePeriod',
+                        'exposure':    pv + 'AcquireTime',
+                        'mode':        pv + 'ImageMode',
+                        'arrays':      pv + 'ArrayCounter',
+                        'numimages':   pv + 'NumImages',
+                        'acquire':     pv + 'Acquire',
+                        'acquire_rbv': pv + 'Acquire'})
+                        
+        self.portname = caget(pv + "PortName_RBV")
+        self.mon_handle = None
+        self.acquiring = None
+        
+    def stop_monitor(self):
+        self.mon_handle.close()
+        
+    def start_monitor(self):
+        self.acquiring = caget( self.pv['acquire_rbv']) is 1
+        self.mon_handle = camonitor( self.pv['acquire_rbv'], self.monitor_acquire)
+        
+    def monitor_acquire(self, acquire):
+        self.acquiring = acquire is 1
+        
+    def acquire(self, exposure, num = 1, wait=True):
+        # First check if acquisition is running
+        if self.acquiring:
+            caput( self.pv['acquire'], 0, wait=True)
+        # Clear counter
+        caput( self.pv['arrays'], 0)
+        # Set number of images
+        caput( self.pv['mode'], "Multiple")
+        caput( self.pv['numimages'], num)
+        # Set exposure and period
+        caput( self.pv['period'], exposure, wait=True)
+        caput( self.pv['exposure'], exposure, wait = True)
+        # Calculate timeout: period (or exposure) * num * 1.5
+        timeout = exposure * num * 1.5
+        caput( self.pv['acquire'], 1, wait=wait, timeout=timeout)
+        
+class HdfPlugin:
+    def __init__(self, pv):
+        self.basepv = pv
+        pv += ":"
+        self.pv = dict( {'enable':      pv + 'EnableCallbacks',
+                         'port':        pv + 'NDArrayPort',
+                         'arrays':      pv + 'ArrayCounter',
+                         'dropped':     pv + 'DroppedArrays',
+                         'numcapture':  pv + 'NumCapture',
+                         'lazyopen':    pv + 'LazyOpen',
+                         'capture':     pv + 'Capture',
+                         'capture_rbv': pv + 'Capture_RBV',
+                         'path':        pv + 'FilePath',
+                         'name':        pv + 'FileName',
+                         'template':    pv + 'FileTemplate',
+                         'mode':        pv + 'FileWriteMode',
+                         'xmlfile':     pv + 'XMLFileName',
+                         'xmlvalid':    pv + 'XMLValid_RBV',
+                         'xmlerror':    pv + 'XMLErroMsg_RBV'})
+                         
+        self.portname = caget(pv + "PortName_RBV")
+        self.capturing = None
+        self.mon_handle = None
+        
+    def __enter__(self):
+        self.start_monitor()
+    def __exit__(self, type, value, traceback):
+        self.stop_monitor()
+        
+    def start_monitor(self):
+        self.capturing = caget( self.pv['capture_rbv']) is 1
+        self.mon_handle = camonitor( self.pv['capture_rbv'], self.monitor_capture )
+    def stop_monitor(self):
+        self.mon_handle.close()
+        
+    def monitor_capture(self, capture):
+        self.capturing = capture is 1
+        
+    def set_data_source(self, source_driver):
+        print "Setting %s plugin input: %s" %( self.portname, source_driver.portname)
+        caput( self.pv['port'], str(source_driver.portname), wait=True)
+        
+    def configure_file(self, outputfile, xmldef=None):
+        if xmldef:
+            caput( self.pv['xmlfile'], os.path.abspath(xmldef), datatype=DBR_CHAR_STR, wait=True)
+            validxml = caget( self.pv['xmlvalid'])
+            if validxml is 0:
+                errmsg = caget( self.pv['xmlerror'] )
+                raise StrException(errmsg)
+            
+        outputfile = os.path.abspath(outputfile)
+        fname = os.path.basename(outputfile)
+        dname = os.path.dirname(outputfile)
+        caput( self.pv['template'], "%s%s", datatype = DBR_CHAR_STR )
+        caput( self.pv['path'], dname, datatype = DBR_CHAR_STR)
+        caput( self.pv['name'], fname, datatype = DBR_CHAR_STR)
+        caput( self.pv['mode'], "Stream", wait=True)
+        
+    def capture(self, num = 1):
+        # first disable plugin
+        caput( self.pv['enable'], 0, wait = True)
+        # Stop capturing if we are currently doing so
+        if self.capturing:
+            caput( self.pv['capture'], 0, wait=True)
+        # Clear counters
+        caput( self.pv['arrays'], 0)
+        caput( self.pv['dropped'], 0)
+        # Enable lazy open
+        caput( self.pv['lazyopen'], 1)
+        # Set number of images to capture
+        caput( self.pv['numcapture'], num, wait=True)
+        # Start capturing
+        caput( self.pv['capture'], num, wait=False)
+        # Re-enable the plugin
+        caput( self.pv['enable'], 1, wait = True)
+        
+class AreaDetector:
+    def __init__(self, drivers, plugins):
+        self.drivers = drivers
+        self.plugins = plugins
+        
+    def __enter__(self):
+        for plugin in self.plugins + self.drivers:
+            plugin.start_monitor()
+            
+    def __exit__(self, type, value, traceback):
+        for plugin in self.plugins + self.drivers:
+            plugin.stop_monitor()
+        
+def main():
+    sim = SimDet('TESTSIMDETECTOR:CAM')
+    hdf = HdfPlugin('TESTSIMDETECTOR:HDF')
+    with AreaDetector([sim], [hdf]) as ad:
+        hdf.set_data_source(sim)
+        hdf.configure_file("blah.h5", 'ADCore/iocs/hdf5LayoutXML/hdf5LayoutXMLApp/data/layout.xml')
+        hdf.capture(4)
+        sim.acquire(0.1, 4)
+        
+    
+    
+if __name__=="__main__":
+    main()
+    
