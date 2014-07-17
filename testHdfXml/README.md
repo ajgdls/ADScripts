@@ -39,6 +39,21 @@ This is the unittest script. It reads its test configuration (which HDF5 and XML
 Dependencies: [h5py](http://docs.h5py.org/en/2.3) which depends on the HDF5 libraries and numpy.
 If the [cothread.atools](http://controls.diamond.ac.uk/downloads/python/cothread) module is present in the system, this test will import the adclientxmlhdf.py script and attempt to generate a HDF5 output file by operating an EPICS AD IOC with simDetector and the HDF5 file writer (which has to be previously started by the user).
 
-CLI interface: Run with the -h flag to see the available options and arguments.
+CLI interface: 
+
+    usage: test_hdf_xml.py [-h] [--verbosity LEVEL] [--failfast] [INIFILE]
+    
+    Testing of the HDF5 file writer XML layout featureThis test compare a HDF5
+    file with an XML definition file.
+    
+    positional arguments:
+      INIFILE               INI file which can list a number of combinations of
+                            HDF5 and XML files to be checked
+    
+    optional arguments:
+      -h, --help            show this help message and exit
+      --verbosity LEVEL, -v LEVEL
+                            Verbosity of the unittest output
+      --failfast, -f        Abort on first encounted test failure or error
 
 
