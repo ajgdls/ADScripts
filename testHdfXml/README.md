@@ -56,4 +56,52 @@ CLI interface:
                             Verbosity of the unittest output
       --failfast, -f        Abort on first encounted test failure or error
 
+Example Test Run
+----------------
+
+An example INI file is provided in test_hdf_xml.ini:
+
+    [LAYOUT TEST]
+    xml_file = data/layout.xml
+    hdf_file = data/layout_test.h5
+    
+    [NEW TXM TEST]
+    xml_file = data/new_txm_sample.xml
+    hdf_file = data/new_txm_sample_test.h5
+
+In this example there are two test-runs (set of input/output files), with a number of individual checks being done for each. The output looks something like this for a simple overview:
+
+    [up45@pc0009 testHdfXml]$ ./test_hdf_xml.py -v1
+    ........
+    ----------------------------------------------------------------------
+    Ran 8 tests in 4.026s
+    
+    OK
+
+With a more verbose setting, some more information about the testing is printed:
+
+    [up45@pc0009 testHdfXml]$ ./test_hdf_xml.py -v5
+    test_all_defined_groups (__main__.TestHdfXml: LAYOUT TEST)
+    Check if all XML defined groups are present in HDF5 ... ok
+    test_all_detector_dset (__main__.TestHdfXml: LAYOUT TEST)
+    Check if all defined detector datasets exist in HDF5 ... ok
+    test_dataset_attributes (__main__.TestHdfXml: LAYOUT TEST)
+    Check if all datasets in HDF5 have the pre-defined attributes present ... ok
+    test_group_attributes (__main__.TestHdfXml: LAYOUT TEST)
+    Check if all groups in HDF5 have the pre-defined attributes present ... ok
+    test_all_defined_groups (__main__.TestHdfXml: NEW TXM TEST)
+    Check if all XML defined groups are present in HDF5 ... ok
+    test_all_detector_dset (__main__.TestHdfXml: NEW TXM TEST)
+    Check if all defined detector datasets exist in HDF5 ... ok
+    test_dataset_attributes (__main__.TestHdfXml: NEW TXM TEST)
+    Check if all datasets in HDF5 have the pre-defined attributes present ... ok
+    test_group_attributes (__main__.TestHdfXml: NEW TXM TEST)
+    Check if all groups in HDF5 have the pre-defined attributes present ... ok
+    
+    ----------------------------------------------------------------------
+    Ran 8 tests in 4.028s
+    
+    OK
+
+
 
