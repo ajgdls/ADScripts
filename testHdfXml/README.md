@@ -12,7 +12,7 @@ Dependencies: [DLS cothread and catools](http://controls.diamond.ac.uk/downloads
 
 CLI interface:
 
-'''
+{{{
 usage: adclientxmlhdf.py [-h] [--exposure T] [--num N] [--simpv SIMPV]
                          [--hdfpv HDFPV]
                          XMLFILE HDF5FILE
@@ -30,7 +30,7 @@ optional arguments:
   --num N, -n N       Number of images to record
   --simpv SIMPV       Base PV of the simulated camera driver
   --hdfpv HDFPV       Base PV of the HDF5 file writer plugin
-'''
+}}}
 
 test_hdf_xml.py
 ---------------
