@@ -148,7 +148,7 @@ class AreaDetector:
         for plugin in self.plugins + self.drivers:
             plugin.stop_monitor()
 
-def run_xml_hdf_writer(xml_file, hdf_file, exposure=0.1, nimages=4,
+def run_xml_hdf_writer(xml_file, hdf_file, exposure=1.0, nimages=1,
                        simpv = 'TESTSIMDETECTOR:CAM',
                        hdfpv = 'TESTSIMDETECTOR:HDF'):
     '''Convenience function to capture a number of simulated images into an HDF5 file'''
