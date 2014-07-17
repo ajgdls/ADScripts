@@ -31,35 +31,47 @@ except ImportError:
 def make_classes(cls, ini_file):
     '''Programatically generate (yield) a number of classes.
     The classes are based on the cls input and the section names of the
-    ini_file input. The content of the ini file sections is stored as constants
+    ini_file input. The ini file name and relevant section name is stored as constants
     in the generated classes.'''
     cfg = ConfigParser.SafeConfigParser()
     cfg.read(ini_file)
     sections = cfg.sections()
     for section in sections:
         name = '%s: %s' %(cls.__name__, section)
-        yield type(name, (cls,), {'hdf_file': os.path.abspath(cfg.get(section, "hdf_file")),
-                                  'xml_file': os.path.abspath(cfg.get(section, "xml_file"))})       
+        yield type(name, (cls,), {'ini_file': ini_file, 'ini_section': section})       
 
 class TestHdfXml(unittest.TestCase):
-    hdf_file = None
-    xml_file = None
+    ini_file = None
+    ini_section = None
     
     def setUp(self):
-        # First check that an XML definition file already exist
-        self.assertTrue(os.path.exists(self.xml_file), \
-                        "Cannot complete tests without XML file: \'%s\'"%(self.xml_file))
+        # First read the ini file (with a few sensible defaults)
+        defaults = {'num_images': "4", 'exposure': "0.1",
+                    'simpv': 'TESTSIMDETECTOR:CAM',
+                    'hdfpv': 'TESTSIMDETECTOR:HDF'}
+        cfg = ConfigParser.SafeConfigParser( defaults = defaults )
+        cfg.read(self.ini_file)
+        xml_file = cfg.get(self.ini_section, 'xml_file')
+        hdf_file = cfg.get(self.ini_section, 'hdf_file')
+
+        # Check that an XML definition file already exist
+        self.assertTrue(os.path.exists(xml_file), \
+                        "Cannot complete tests without XML file: \'%s\'"%(xml_file))
         if RUN_CA_CLIENT:
             # Use the XML file (and some IOC out there) to create a HDF5 file
-            adclientxmlhdf.run_xml_hdf_writer(self.xml_file, self.hdf_file)
+            adclientxmlhdf.run_xml_hdf_writer(xml_file, hdf_file, 
+                                              nimages= cfg.getint(self.ini_section, 'num_images'), 
+                                              exposure= cfg.getfloat(self.ini_section, 'exposure'),
+                                              simpv = cfg.get(self.ini_section, 'simpv'),
+                                              hdfpv = cfg.get(self.ini_section, 'hdfpv') )
         
         # Now check that the HDF5 file really exists
-        self.assertTrue(os.path.exists(self.hdf_file),\
-                        "Cannot complete tests without HDF5 file: \'%s\'"%(self.hdf_file))
+        self.assertTrue(os.path.exists(hdf_file),
+                        "Cannot complete tests without HDF5 file: \'%s\'"%(hdf_file))
         
         self.xml_def = hdf_xml.HdfXmlDefinition()
-        self.xml_def.populate(self.xml_file)
-        self.hdf = h5py.File(self.hdf_file)
+        self.xml_def.populate(xml_file)
+        self.hdf = h5py.File(hdf_file)
         
         # Build some convenient lists of gropus and datasets
         self.hdf_groups = []
