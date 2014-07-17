@@ -10,7 +10,27 @@ A small Channel Access client script to operate a simDetector driver together wi
 
 Dependencies: [DLS cothread and catools](http://controls.diamond.ac.uk/downloads/python/cothread)
 
-CLI interface: Run with the -h flag to see the available options and arguments.
+CLI interface:
+
+'''
+usage: adclientxmlhdf.py [-h] [--exposure T] [--num N] [--simpv SIMPV]
+                         [--hdfpv HDFPV]
+                         XMLFILE HDF5FILE
+
+EPICS areaDetector client to control the acquisition of (simulated) images and
+the associated HDF5 file writer
+
+positional arguments:
+  XMLFILE             XML file describing the layout of the output HDF5 file
+  HDF5FILE            Output HDF5 file
+
+optional arguments:
+  -h, --help          show this help message and exit
+  --exposure T, -e T  Set the camera exposure time in seconds
+  --num N, -n N       Number of images to record
+  --simpv SIMPV       Base PV of the simulated camera driver
+  --hdfpv HDFPV       Base PV of the HDF5 file writer plugin
+'''
 
 test_hdf_xml.py
 ---------------
