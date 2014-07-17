@@ -161,7 +161,7 @@ class HdfXmlDefinition:
             
 def main():
     xml_def = HdfXmlDefinition()
-    xml_def.populate('/home/up45/github/ADCore/iocs/hdf5LayoutXML/hdf5LayoutXMLApp/data/layout.xml')
+    xml_def.populate('data/layout.xml')
     print xml_def.groups, "\n"
         
     print xml_def.datasets, "\n"
