@@ -24,6 +24,7 @@ import hdf_xml
 try:
     import adclientxmlhdf
     RUN_CA_CLIENT=True
+    print "DLS cothread.catools module is available."
 except ImportError:
     RUN_CA_CLIENT=False
 
