@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema attributeFormDefault="qualified" 
+  elementFormDefault="qualified" 
+  xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+
+  <xs:simpleType name ="dsetSourceType">
+   <xs:restriction base="xs:string">
+     <xs:enumeration value="detector"/>
+     <xs:enumeration value="constant"/>
+     <xs:enumeration value="ndattribute"/>
+   </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:simpleType name ="sourcetypeType">
+   <xs:restriction base="xs:string">
+     <xs:enumeration value="int"/>
+     <xs:enumeration value="float"/>
+     <xs:enumeration value="string"/>
+   </xs:restriction>
+  </xs:simpleType>
+  
+  
+  <xs:complexType name="attributeType">
+    <xs:attribute name="name" type="xs:string" use="required" />
+    <xs:attribute name="source" use="required">
+		  <xs:simpleType>
+		   <xs:restriction base="xs:string">
+		     <xs:enumeration value="constant"/>
+		     <xs:enumeration value="ndattribute"/>
+		   </xs:restriction>
+		  </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="value" type="xs:string" use="optional" default="" />
+    <xs:attribute name="type" type="attributeType" use="optional" default="string" />
+    <xs:attribute name="ndattribute" type="xs:string" use="optional" default="" />
+  </xs:complexType>
+
+  <xs:complexType name="datasetType">
+  <xs:sequence >
+    <xs:element name="attribute" type="attributeType" maxOccurs="unbounded" minOccurs="0"/>
+  </xs:sequence>
+    <xs:attribute name="name" type="xs:string" use="required" />
+    <xs:attribute name="source" type="dsetSourceType" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="optional" default="" />
+    <xs:attribute name="ndattribute" type="xs:string" use="optional" default="" />
+  </xs:complexType>
+  
+  <xs:complexType name="attribute">
+    <xs:attribute name="name" type="xs:string" use="required" />
+    <xs:attribute name="source" type="dsetSourceType" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="optional" default="" />
+    <xs:attribute name="ndattribute" type="xs:string" use="optional" default="" />    
+  </xs:complexType>
+
+<xs:complexType name="groupType">
+  <xs:sequence >
+    <xs:element name="dataset" type="datasetType" maxOccurs="unbounded" minOccurs="0"/>
+    <xs:element name="attribute" type="attributeType" maxOccurs="unbounded" minOccurs="0"/>
+    <xs:element name="group" type="groupType" maxOccurs="unbounded" minOccurs="0"/>
+  </xs:sequence>
+  <xs:attribute name="name" type="xs:string" use="required" />
+</xs:complexType>
+
+
+<xs:element name="group" type="groupType"/>
+
+</xs:schema>
