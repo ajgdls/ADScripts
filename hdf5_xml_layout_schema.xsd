@@ -46,13 +46,6 @@
     <xs:attribute name="ndattribute" type="xs:string" use="optional" default="" />
   </xs:complexType>
   
-  <xs:complexType name="attribute">
-    <xs:attribute name="name" type="xs:string" use="required" />
-    <xs:attribute name="source" type="dsetSourceType" use="required"/>
-    <xs:attribute name="value" type="xs:string" use="optional" default="" />
-    <xs:attribute name="ndattribute" type="xs:string" use="optional" default="" />    
-  </xs:complexType>
-
 <xs:complexType name="groupType">
   <xs:sequence >
     <xs:element name="dataset" type="datasetType" maxOccurs="unbounded" minOccurs="0"/>
@@ -62,7 +55,17 @@
   <xs:attribute name="name" type="xs:string" use="required" />
 </xs:complexType>
 
+<xs:complexType name="globalType">
+  <xs:attribute name="ndattribute" type="xs:string" use="required"/>
+</xs:complexType>
 
-<xs:element name="group" type="groupType"/>
+<xs:element name="xml">
+    <xs:complexType>
+	    <xs:sequence>
+	        <xs:element name="global" type="globalType"/>
+	       <xs:element name="group" type="groupType" minOccurs="1" maxOccurs="unbounded"/>
+	    </xs:sequence>
+    </xs:complexType>
+</xs:element>
 
 </xs:schema>
