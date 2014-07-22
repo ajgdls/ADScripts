@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xs:schema attributeFormDefault="qualified"
-  elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+<xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-
-  <xs:simpleType name="dsetSourceType">
+  <xs:simpleType name="dsetSourceEnum">
     <xs:restriction base="xs:string">
       <xs:enumeration value="detector" />
       <xs:enumeration value="constant" />
@@ -11,14 +9,13 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <xs:simpleType name="sourcetypeType">
+  <xs:simpleType name="attrSourceTypeEnum">
     <xs:restriction base="xs:string">
       <xs:enumeration value="int" />
       <xs:enumeration value="float" />
       <xs:enumeration value="string" />
     </xs:restriction>
   </xs:simpleType>
-
 
   <xs:complexType name="attributeType">
     <xs:attribute name="name" type="xs:string" use="required" />
@@ -39,29 +36,24 @@
         </xs:restriction>
       </xs:simpleType>
     </xs:attribute>
-    <xs:attribute name="value" type="xs:string" use="optional"
-      default="" />
-    <xs:attribute name="type" type="sourcetypeType" use="optional"
-      default="string" />
-    <xs:attribute name="ndattribute" type="xs:string" use="optional"
-      default="" />
+    <xs:attribute name="value" type="xs:string" use="optional" default="" />
+    <xs:attribute name="type" type="attrSourceTypeEnum" use="optional" default="string" />
+    <xs:attribute name="ndattribute" type="xs:string" use="optional" default="" />
   </xs:complexType>
 
+  <!-- The dataset element can contain attributes -->
   <xs:complexType name="datasetType">
     <xs:sequence>
-      <xs:element name="attribute" type="attributeType"
-        maxOccurs="unbounded" minOccurs="0" />
+      <xs:element name="attribute" type="attributeType" maxOccurs="unbounded" minOccurs="0" />
     </xs:sequence>
     <xs:attribute name="name" type="xs:string" use="required" />
-    <xs:attribute name="source" type="dsetSourceType" use="required" />
-    <xs:attribute name="value" type="xs:string" use="optional"
-      default="" />
-    <xs:attribute name="ndattribute" type="xs:string" use="optional"
-      default="" />
-    <xs:attribute name="det_default" type="xs:boolean" use="optional"
-      default="false" />
+    <xs:attribute name="source" type="dsetSourceEnum" use="required" />
+    <xs:attribute name="value" type="xs:string" use="optional" default="" />
+    <xs:attribute name="ndattribute" type="xs:string" use="optional" default="" />
+    <xs:attribute name="det_default" type="xs:boolean" use="optional" default="false" />
   </xs:complexType>
 
+  <!-- The group element can contain other elements: datasets, attributes and other groups -->
   <xs:complexType name="groupType">
     <xs:choice minOccurs="0" maxOccurs="unbounded">
       <xs:element name="dataset" type="datasetType" />
@@ -69,11 +61,11 @@
       <xs:element name="group" type="groupType" />
     </xs:choice>
     <xs:attribute name="name" type="xs:string" use="required" />
-    <xs:attribute name="ndattr_default" type="xs:boolean"
-      use="optional" default="false" />
+    <xs:attribute name="ndattr_default" type="xs:boolean" use="optional" default="false" />
   </xs:complexType>
 
-
+  <!--The global element is so far only used to register an NDAttribute which will point
+      to the destination of the detector data  -->
   <xs:complexType name="globalType">
     <xs:attribute name="name" use="required">
       <xs:simpleType>
