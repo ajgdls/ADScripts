@@ -9,7 +9,8 @@ require("numpy")
 require("cothread")
 
 import cothread
-from cothread.catools import *
+from cothread import dbr
+from cothread.catools import caget, caput
 
 def load_settings( settings ):
     '''Load a whole bunch of PV values in one go
@@ -21,10 +22,10 @@ def load_settings( settings ):
 
 def setup_hdf_writer_plugin():
     settings = [
-                ("13SIM1:HDF1:FilePath","H:/tmp/hdfbug", DBR_CHAR_STR),
-                ("13SIM1:HDF1:FileName", "testbug", DBR_CHAR_STR),
+                ("13SIM1:HDF1:FilePath","H:/tmp/hdfbug", dbr.DBR_CHAR_STR),
+                ("13SIM1:HDF1:FileName", "testbug", dbr.DBR_CHAR_STR),
                 ("13SIM1:HDF1:AutoIncrement", "Yes", None),
-                ("13SIM1:HDF1:FileTemplate", "%s%s%d.h5", DBR_CHAR_STR),
+                ("13SIM1:HDF1:FileTemplate", "%s%s%d.h5", dbr.DBR_CHAR_STR),
                 ("13SIM1:HDF1:AutoSave", "Yes", None),
                 ("13SIM1:HDF1:FileWriteMode", "Single", None),
                 ("13SIM1:HDF1:NumCapture", 1, None),
@@ -63,7 +64,7 @@ def capture_one_image_single():
     caput( "13SIM1:cam1:Acquire", 1, wait=True, timeout=timeout )
     # Wait for a brief moment to allow the file saving to complete
     cothread.Sleep( 1.0 )
-    fname = caget( "13SIM1:HDF1:FullFileName_RBV", datatype=DBR_CHAR_STR )
+    fname = caget( "13SIM1:HDF1:FullFileName_RBV", datatype=dbr.DBR_CHAR_STR )
     print "Captured into image file: ", fname
 
 def capture_one_image_capture():

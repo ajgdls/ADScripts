@@ -9,7 +9,10 @@ except:
 
 import os
 import argparse
-from cothread.catools import *
+
+# Import all the relevant Channel Access client stuff
+from cothread import dbr
+from cothread.catools import caget, caput, camonitor
 
 class StrException(Exception):
     def __init__(self, msg):
@@ -103,7 +106,7 @@ class HdfPlugin:
         
     def configure_file(self, outputfile, xmldef=None):
         if xmldef:
-            caput( self.pv['xmlfile'], os.path.abspath(xmldef), datatype=DBR_CHAR_STR, wait=True)
+            caput( self.pv['xmlfile'], os.path.abspath(xmldef), datatype=dbr.DBR_CHAR_STR, wait=True)
             validxml = caget( self.pv['xmlvalid'])
             if validxml is 0:
                 errmsg = caget( self.pv['xmlerror'] )
@@ -112,9 +115,9 @@ class HdfPlugin:
         outputfile = os.path.abspath(outputfile)
         fname = os.path.basename(outputfile)
         dname = os.path.dirname(outputfile)
-        caput( self.pv['template'], "%s%s", datatype = DBR_CHAR_STR )
-        caput( self.pv['path'], dname, datatype = DBR_CHAR_STR)
-        caput( self.pv['name'], fname, datatype = DBR_CHAR_STR)
+        caput( self.pv['template'], "%s%s", datatype = dbr.DBR_CHAR_STR )
+        caput( self.pv['path'], dname, datatype = dbr.DBR_CHAR_STR)
+        caput( self.pv['name'], fname, datatype = dbr.DBR_CHAR_STR)
         caput( self.pv['mode'], "Stream", wait=True)
         
     def capture(self, num = 1):
