@@ -77,6 +77,18 @@ def capture_one_image_capture():
     cothread.Sleep(1.0)
     print "Acquire a single frame"
     caput( "13SIM1:cam1:Acquire", 1, wait=False )
+
+def capture_one_image_stream():
+    settings = [
+                ("13SIM1:HDF1:FileWriteMode", "Stream", None),
+                ]
+    load_settings( settings )
+    print "Start capture mode"
+    caput( "13SIM1:HDF1:Capture", 1, wait=False )
+    # Wait for a brief moment to allow the file saving plugin to create the file
+    cothread.Sleep(1.0)
+    print "Acquire a single frame"
+    caput( "13SIM1:cam1:Acquire", 1, wait=False )
     
 def enable_asyn_trace():
     hdfport = caget("13SIM1:HDF1:PortName_RBV")
@@ -96,5 +108,6 @@ def main():
     enable_asyn_trace()
     capture_one_image_capture()
     
+    #capture_one_image_stream()
 if __name__=="__main__":
     main()
